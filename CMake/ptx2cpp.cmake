@@ -18,30 +18,34 @@
 #  INABILITY TO USE THIS SOFTWARE, EVEN IF NVIDIA HAS BEEN ADVISED OF THE POSSIBILITY OF
 #  SUCH DAMAGES
 #
-# include_directories("C:/Users/bisai/Documents/software/glut-3.7/include/")
-if(GLUT_FOUND AND OPENGL_FOUND)
-  include_directories(${GLUT_INCLUDE_DIR})
-  # include_directories("C:/Users/bisai/Documents/software/glut-3.7/include/")
-  add_definitions(-DGLUT_FOUND -DGLUT_NO_LIB_PRAGMA)
 
-  # See top level CMakeLists.txt file for documentation of OPTIX_add_sample_executable.
-  OPTIX_add_sample_executable( PathTracer
-    path_tracer.cpp
+# This script produces a string variable from the contents of a ptx
+# script.  The variable is defined in the .cc file and the .h file.
 
-    # These files are common among multiple samples
-    helpers.h
-    parallelogram.cu
-    path_tracer.cu
-    path_tracer.h
-    random.h
-    utils.h
-    utils.cpp
-    )
+# This script excepts the following variable to be passed in like
+# -DVAR:TYPE=VALUE
+# 
+# CPP_FILE
+# PTX_FILE
+# VARIABLE_NAME
+# NAMESPACE
+# CUDA_BIN2C_EXECUTABLE
 
-else()
-  # GLUT or OpenGL not found
-  message("Disabling path_tracer, which requires glut and opengl.")
+# message("PTX_FILE      = ${PTX_FILE}")
+# message("CPP_FILE      = ${C_FILE}")
+# message("VARIABLE_NAME = ${VARIABLE_NAME}")
+# message("NAMESPACE     = ${NAMESPACE}")
+
+execute_process( COMMAND ${CUDA_BIN2C_EXECUTABLE} -p 0 -st -c -n ${VARIABLE_NAME}_static "${PTX_FILE}"
+  OUTPUT_VARIABLE bindata
+  RESULT_VARIABLE result
+  ERROR_VARIABLE error
+  )
+if(result)
+  message(FATAL_ERROR "bin2c error:\n" ${error})
 endif()
 
-
-
+set(BODY
+  "${bindata}\n"
+  "namespace ${NAMESPACE} {\n\nstatic const char* const ${VARIABLE_NAME} = reinterpret_cast<const char*>(&${VARIABLE_NAME}_static[0]);\n} // end namespace ${NAMESPACE}\n")
+file(WRITE ${CPP_FILE} "${BODY}")

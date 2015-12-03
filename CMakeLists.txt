@@ -75,7 +75,7 @@
 
 # This sets up the name of our project.  For our purposes the main thing this controls is
 # the name of the VS solution file.
-project(OptiX-Samples)
+project(Tracer)
 
 # This enforces a particular version of CMake that we require to process the script files
 # properly.
@@ -183,7 +183,8 @@ if( APPLE )
 endif()
 
 # Locate the NVRT distribution.  Search the SDK first, then look in the system.
-set(OptiX_INSTALL_DIR "${CMAKE_SOURCE_DIR}/../" CACHE PATH "Path to OptiX installed location.")
+# set(OptiX_INSTALL_DIR "${CMAKE_SOURCE_DIR}/../" CACHE PATH "Path to OptiX installed location.")
+set(OptiX_INSTALL_DIR "C:/ProgramData/NVIDIA Corporation/OptiX SDK 3.8.0/" CACHE PATH "Path to OptiX installed location.")
 
 # Search for the OptiX libraries and include files.
 find_package(OptiX REQUIRED)
@@ -275,59 +276,7 @@ endfunction()
 # If you wish to start your own sample, you can copy one of the sample's directories.
 # Just make sure you rename all the occurances of the sample's name in the C code as well
 # and the CMakeLists.txt file.
-# add_subdirectory(ambocc)
-# add_subdirectory(buffersOfBuffers)
-# add_subdirectory(collision)
-# add_subdirectory(cook)
-# add_subdirectory(device_exceptions)
-# add_subdirectory(displacement)
-# add_subdirectory(glass)
-# add_subdirectory(heightfield)
-# add_subdirectory(hybridShadows)
-# add_subdirectory(instancing)
-# add_subdirectory(isgReflections)
-# add_subdirectory(isgShadows)
-# add_subdirectory(julia)
-# add_subdirectory(mantascene)
-# add_subdirectory(materials)
-# add_subdirectory(mcmc_sampler)
-# add_subdirectory(mis_sample)
-# add_subdirectory(namespaces)
-# add_subdirectory(ocean)
-add_subdirectory(path_tracer)
-# add_subdirectory(primeInstancing)
-# add_subdirectory(primeMasking)
-# add_subdirectory(primeMultiBuffering)
-# add_subdirectory(primeMultiGpu)
-# add_subdirectory(primePP)
-# add_subdirectory(primeSimple)
-# add_subdirectory(primitiveIndexOffsets)
-# add_subdirectory(procedural)
-# add_subdirectory(progressive)
-# add_subdirectory(progressivePhotonMap)
-# add_subdirectory(queryRemote)
-# add_subdirectory(queryRemotePP)
-# add_subdirectory(rayDifferentials)
-# add_subdirectory(sample1)
-# add_subdirectory(sample2)
-# add_subdirectory(sample3)
-# add_subdirectory(sample4)
-# add_subdirectory(sample5)
-# add_subdirectory(sample5pp)
-add_subdirectory(sample6)
-# add_subdirectory(sample7)
-# add_subdirectory(sample8)
-# add_subdirectory(shadeTree)
-# add_subdirectory(simpleAnimation)
-# add_subdirectory(simpleGLTexInterop)
-# add_subdirectory(sphereTessellate)
-# add_subdirectory(swimmingShark)
-# add_subdirectory(transparency)
-add_subdirectory(tutorial)
-add_subdirectory(path_tracer_true)
-# add_subdirectory(whirligig)
-# add_subdirectory(whitted)
-# add_subdirectory(zoneplate)
+add_subdirectory(src)
 
 # Our sutil library.  The rules to build it are found in the subdirectory.
 add_subdirectory(sutil)
