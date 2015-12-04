@@ -35,6 +35,10 @@ public:
 		this->m_env_path = path;
 	}
 
+	void setOutputPath(std::string output_path){
+		this->m_output_path = output_path;
+	}
+
 	void LoadGeometry();
 
 	void SaveFrame(const char* file_name);
@@ -59,8 +63,9 @@ private:
 	unsigned int   m_frame;
 	unsigned int   m_sampling_strategy;
 	std::string    m_filename;
-	std::string  m_env_path;
-	optix::Aabb m_aabb;
+	std::string    m_env_path;
+	optix::Aabb    m_aabb;
+	std::string    m_output_path;
 };
 
 #endif

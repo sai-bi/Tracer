@@ -38,6 +38,7 @@ if(GLUT_FOUND AND OPENGL_FOUND)
     utils.cpp
     tiny_obj_loader.h
     PathTracerScene.h
+    main.cpp
     )
 
 else()

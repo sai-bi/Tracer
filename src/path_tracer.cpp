@@ -81,7 +81,6 @@ void PathTracerScene::initScene(InitialCameraData& camera_data){
 	m_context->setExceptionProgram( 0, exception_program );
   
 	// miss program
-	// m_context->setMissProgram( 0, m_context->createProgramFromPTXFile( ptx_path, "miss" ) );
 	// load env map
 	const float3 default_color = make_float3(0.8f, 0.8f, 0.8f);
 	m_context["envmap"]->setTextureSampler(loadTexture(m_context, m_env_path, default_color));
@@ -226,43 +225,6 @@ void PathTracerScene::createGeometry(){
 	m_context["top_object"]->set(top_group);
 }
 
-//-----------------------------------------------------------------------------
-//
-// main
-//
-//-----------------------------------------------------------------------------
-
-void printUsageAndExit( const std::string& argv0, bool doExit = true )
-{
-	std::cerr
-	<< "Usage  : " << argv0 << " [options]\n"
-	<< "App options:\n"
-	<< "  -h  | --help                               Print this usage message\n"
-	<< "  -n  | --sqrt_num_samples <ns>              Number of samples to perform for each frame\n"
-	<< "  -t  | --timeout <sec>                      Seconds before stopping rendering. Set to 0 for no stopping.\n"
-	<< std::endl;
-	GLUTDisplay::printUsage();
-
-	if ( doExit ) exit(1);
-}
-
-
-unsigned int getUnsignedArg(int& arg_index, int argc, char** argv)
-{
-	int result = -1;
-	if (arg_index+1 < argc) {
-	result = atoi(argv[arg_index+1]);
-	} else {
-	std::cerr << "Missing argument to "<<argv[arg_index]<<"\n";
-	printUsageAndExit(argv[0]);
-	}
-	if (result < 0) {
-	std::cerr << "Argument to "<<argv[arg_index]<<" must be positive.\n";
-	printUsageAndExit(argv[0]);
-	}
-	++arg_index;
-	return static_cast<unsigned int>(result);
-}
 
 void PathTracerScene::SaveFrame(const char* filename){
 	RTbuffer buffer = m_context["output_buffer"]->getBuffer()->get();	
@@ -296,55 +258,3 @@ void PathTracerScene::SaveFrame(const char* filename){
 }
 
 
-
-int main( int argc, char** argv )
-{
-	GLUTDisplay::init( argc, argv );
-
-	// Process command line options
-	unsigned int sqrt_num_samples = 10u;
-
-	unsigned int width = 512u, height = 512u;
-	float timeout = 10.0f;
-
-	for ( int i = 1; i < argc; ++i ) {
-	std::string arg( argv[i] );
-	if ( arg == "--sqrt_num_samples" || arg == "-n" ) {
-		sqrt_num_samples = atoi( argv[++i] );
-	} else if ( arg == "--timeout" || arg == "-t" ) {
-		if(++i < argc) {
-		timeout = static_cast<float>(atof(argv[i]));
-		} else {
-		std::cerr << "Missing argument to "<<arg<<"\n";
-		printUsageAndExit(argv[0]);
-		}
-	} else if ( arg == "--help" || arg == "-h" ) {
-		printUsageAndExit( argv[0] );
-	} else {
-		std::cerr << "Unknown option: '" << arg << "'\n";
-		printUsageAndExit( argv[0] );
-	}
-	}
-
-	if( !GLUTDisplay::isBenchmark() ) printUsageAndExit( argv[0], false );
-
-	try {
-		PathTracerScene scene;
-		scene.setNumSamples( sqrt_num_samples );
-		scene.setDimensions( width, height );
-		string obj_file_name = std::string(sutilSamplesDir()) + "/simpleAnimation/bunny_with_base.obj";
-		string out_obj_name = std::string(sutilSamplesDir()) + "/simpleAnimation/cube_copy.obj";
-		scene.setFileName(obj_file_name.c_str());
-		std::string envmap_path = std::string(sutilSamplesDir()) + "/simpleAnimation/CedarCity.hdr";
-		scene.setEnvmapPath(envmap_path);
-
-		GLUTDisplay::setProgressiveDrawingTimeout(timeout);
-		GLUTDisplay::setUseSRGB(false);
-		GLUTDisplay::run("Cornell Box Scene", &scene, GLUTDisplay::CDProgressive);
-	} catch( Exception& e ){
-		sutilReportError( e.getErrorString().c_str() );
-		exit(1);
-	}
-  
-	return 0;
-}
