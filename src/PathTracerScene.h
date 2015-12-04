@@ -43,15 +43,6 @@ private:
 	// Should return true if key was handled, false otherwise.
 	virtual bool keyPressed(unsigned char key, int x, int y);
 	void createGeometry();
-
-	optix::GeometryInstance createParallelogram(const optix::float3& anchor,
-		const optix::float3& offset1,
-		const optix::float3& offset2);
-
-	optix::GeometryInstance createLightParallelogram(const optix::float3& anchor,
-		const optix::float3& offset1,
-		const optix::float3& offset2,
-		int lgt_instance = -1);
 	void setMaterial(optix::GeometryInstance& gi,
 		optix::Material material,
 		const std::string& color_name,

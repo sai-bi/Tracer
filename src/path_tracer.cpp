@@ -61,18 +61,6 @@ void PathTracerScene::initScene(InitialCameraData& camera_data){
 	Variable output_buffer = m_context["output_buffer"];
 	Buffer buffer = createOutputBuffer( RT_FORMAT_FLOAT4, m_width, m_height );
 	output_buffer->set(buffer);
-  
-	Variable output_buffer_1 = m_context["output_buffer_1"];
-	Buffer buffer_1 = createOutputBuffer(RT_FORMAT_FLOAT4, m_width, m_height);
-	output_buffer_1->set(buffer_1);
-
-	Variable output_buffer_2 = m_context["output_buffer_2"];
-	Buffer buffer_2 = createOutputBuffer(RT_FORMAT_FLOAT4, m_width, m_height);
-	output_buffer_2->set(buffer_2);
-
-	Variable output_buffer_3 = m_context["output_buffer_3"];
-	Buffer buffer_3 = createOutputBuffer(RT_FORMAT_FLOAT4, m_width, m_height);
-	output_buffer_3->set(buffer_3);
 
 	// Declare these so validation will pass
 	m_context["eye"]->setFloat( make_float3( 0.0f, 0.0f, 0.0f ) );
@@ -111,11 +99,10 @@ void PathTracerScene::initScene(InitialCameraData& camera_data){
 	float3 eye = m_aabb.center();
 	eye.z += 2.0f * max_dim;
 
-	// eye = make_float3(0, 0, 20);
-	camera_data = InitialCameraData(eye,                             // eye
-			m_aabb.center(),                         // lookat
-			make_float3(0.0f, 1.0f, 0.0f), // up
-			30.0f);
+	camera_data = InitialCameraData(eye,                           // eye
+									m_aabb.center(),               // lookat
+									make_float3(0.0f, 1.0f, 0.0f), // up
+									30.0f);
 
 	// Finalize
 	m_context->validate();
@@ -198,82 +185,22 @@ void PathTracerScene::LoadGeometry(){
 	delete[] mesh_vertex;
 }
 
-GeometryInstance PathTracerScene::createParallelogram( const float3& anchor,
-                                                       const float3& offset1,
-                                                       const float3& offset2)
-{
-	Geometry parallelogram = m_context->createGeometry();
-	parallelogram->setPrimitiveCount( 1u );
-	parallelogram->setIntersectionProgram( m_pgram_intersection );
-	parallelogram->setBoundingBoxProgram( m_pgram_bounding_box );
-
-	float3 normal = normalize( cross( offset1, offset2 ) );
-	float d = dot( normal, anchor );
-	float4 plane = make_float4( normal, d );
-
-	float3 v1 = offset1 / dot( offset1, offset1 );
-	float3 v2 = offset2 / dot( offset2, offset2 );
-
-	parallelogram["plane"]->setFloat( plane );
-	parallelogram["anchor"]->setFloat( anchor );
-	parallelogram["v1"]->setFloat( v1 );
-	parallelogram["v2"]->setFloat( v2 );
-
-	GeometryInstance gi = m_context->createGeometryInstance();
-	gi->setGeometry(parallelogram);
-	return gi;
-}
-
-GeometryInstance PathTracerScene::createLightParallelogram( const float3& anchor,
-                                                            const float3& offset1,
-                                                            const float3& offset2,
-                                                            int lgt_instance)
-{
-	Geometry parallelogram = m_context->createGeometry();
-	parallelogram->setPrimitiveCount( 1u );
-	parallelogram->setIntersectionProgram( m_pgram_intersection );
-	parallelogram->setBoundingBoxProgram( m_pgram_bounding_box );
-
-	float3 normal = normalize( cross( offset1, offset2 ) );
-	float d = dot( normal, anchor );
-	float4 plane = make_float4( normal, d );
-
-	float3 v1 = offset1 / dot( offset1, offset1 );
-	float3 v2 = offset2 / dot( offset2, offset2 );
-
-	parallelogram["plane"]->setFloat( plane );
-	parallelogram["anchor"]->setFloat( anchor );
-	parallelogram["v1"]->setFloat( v1 );
-	parallelogram["v2"]->setFloat( v2 );
-	parallelogram["lgt_instance"]->setInt( lgt_instance );
-
-	GeometryInstance gi = m_context->createGeometryInstance();
-	gi->setGeometry(parallelogram);
-	return gi;
-}
 
 void PathTracerScene::setMaterial( GeometryInstance& gi,
                                    Material material,
                                    const std::string& color_name,
-                                   const float3& color)
-{
+                                   const float3& color){
 	gi->addMaterial(material);
 	gi[color_name]->setFloat(color);
 }
 
 void PathTracerScene::createGeometry(){
-  // Set up material
+    // Set up material
 	Material diffuse = m_context->createMaterial();
 	Program diffuse_ch = m_context->createProgramFromPTXFile(ptxpath("path_tracer", "path_tracer.cu"), "diffuse");
 	Program diffuse_ah = m_context->createProgramFromPTXFile(ptxpath("path_tracer", "path_tracer.cu"), "shadow");
 	diffuse->setClosestHitProgram(0, diffuse_ch);
 	diffuse->setAnyHitProgram(1, diffuse_ah);
-  
-	// Set up parallelogram programs
-	std::string ptx_path = ptxpath("path_tracer", "parallelogram.cu");
-	m_pgram_bounding_box = m_context->createProgramFromPTXFile(ptx_path, "bounds");
-	m_pgram_intersection = m_context->createProgramFromPTXFile(ptx_path, "intersect");
-
   
 	GeometryGroup mesh_group = m_context->createGeometryGroup();
 	OptiXMesh loader(m_context, mesh_group, m_accel_desc);
@@ -292,7 +219,6 @@ void PathTracerScene::createGeometry(){
 	shadow_group->setAcceleration(m_context->createAcceleration(m_accel_desc.builder.c_str(), m_accel_desc.traverser.c_str()));
 	m_context["top_shadower"]->set(shadow_group);
   
-	// add light
 	Group top_group = m_context->createGroup();  
 	top_group->setChildCount(1);
 	top_group->setChild(0, mesh_group);
@@ -338,52 +264,10 @@ unsigned int getUnsignedArg(int& arg_index, int argc, char** argv)
 	return static_cast<unsigned int>(result);
 }
 
-
-static RTresult SavePPM(const unsigned char *Pix, const char *fname, int wid, int hgt, int chan)
-{
-	if (Pix == NULL || chan < 1 || wid < 1 || hgt < 1) {
-		fprintf(stderr, "Image is not defined. Not saving.\n");
-		return RT_ERROR_UNKNOWN;
-	}
-
-	if (chan < 1 || chan > 4) {
-		fprintf(stderr, "Can't save a X channel image as a PPM.\n");
-		return RT_ERROR_UNKNOWN;
-	}
-
-	ofstream OutFile(fname, ios::out | ios::binary);
-	if (!OutFile.is_open()) {
-		fprintf(stderr, "Could not open file for SavePPM\n");
-		return RT_ERROR_UNKNOWN;
-	}
-
-	bool is_float = false;
-	OutFile << 'P';
-	OutFile << ((chan == 1 ? (is_float ? 'Z' : '5') : (chan == 3 ? (is_float ? '7' : '6') : '8'))) << endl;
-	OutFile << wid << " " << hgt << endl << 255 << endl;
-
-	OutFile.write(reinterpret_cast<char*>(const_cast<unsigned char*>(Pix)), wid * hgt * chan * (is_float ? 4 : 1));
-
-	OutFile.close();
-
-	return RT_SUCCESS;
-}
-
 void PathTracerScene::SaveFrame(const char* filename){
-	std::vector<unsigned char> pix(m_width * m_height * 3);
-
-	RTbuffer buffer_1 = m_context["output_buffer_1"]->getBuffer()->get();	
-	void* imageData_1;
-	rtBufferMap(buffer_1, &imageData_1);
-
-	RTbuffer buffer_2 = m_context["output_buffer_2"]->getBuffer()->get();
-	void* imageData_2;
-	rtBufferMap(buffer_2, &imageData_2);
-
-	RTbuffer buffer_3 = m_context["output_buffer_3"]->getBuffer()->get();
-	void* imageData_3;
-	rtBufferMap(buffer_3, &imageData_3);
-
+	RTbuffer buffer = m_context["output_buffer"]->getBuffer()->get();	
+	void* imageData;
+	rtBufferMap(buffer, &imageData);
 
 	FILE * pFile;
 	pFile = fopen(filename, "w");
@@ -394,39 +278,20 @@ void PathTracerScene::SaveFrame(const char* filename){
 	}
 
 	for (int j = m_height - 1; j >= 0; --j) {
-		unsigned char *dst = &pix[0] + (3 * m_width*(m_height - 1 - j));
-		float* src_1 = ((float*)imageData_1) + (4 * m_width*j);
-		float* src_2 = ((float*)imageData_2) + (4 * m_width*j);
-		float* src_3 = ((float*)imageData_3) + (4 * m_width*j);
+		float* src_1 = ((float*)imageData) + (4 * m_width*j);
+
 		for (int i = 0; i < m_width; i++) {
-			    fprintf(pFile, "%c ", 'c');
-				for (int elem = 0; elem < 3; ++elem) {
-					float c = *src_1;
-					fprintf(pFile, "%f ", c);
-					src_1++;
-				}
-				src_1++;
-
-				for (int elem = 0; elem < 3; ++elem) {
-					float c = *src_2;
-					fprintf(pFile, "%f ", c);
-					src_2++;
-				}
-				src_2++;
-
-
-			  for (int elem = 0; elem < 3; ++elem) {
-				float c = *src_3;
+			fprintf(pFile, "%c ", 'c');
+			for (int elem = 0; elem < 3; ++elem) {
+				float c = *src_1;
 				fprintf(pFile, "%f ", c);
-				src_3++;
-			  }
-			  src_3++;
-			  fprintf(pFile, "\n");
+				src_1++;
+			}
+			src_1++;
 		}
 	}
-	rtBufferUnmap(buffer_1);
-	rtBufferUnmap(buffer_2);
-	rtBufferUnmap(buffer_3);
+	rtBufferUnmap(buffer);
+	fclose(pFile);
 	exit(-1);
 }
 
