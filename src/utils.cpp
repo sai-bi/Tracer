@@ -123,14 +123,6 @@ void LoadObj(const char* filename,
 		}
 	}
 
-	/*int vertex_num = vertices.size();
-	normals.resize(vertex_num, make_float3(0.0, 0.0, 0.0));
-	for (int i = 0; i < elements.size(); i++){
-		int normal_index = vertex_normal_index[i];
-		int vertex_index = elements[i];
-		normals[vertex_index] = normalize(normals[normal_index]);
-	}*/
-
 	int vertex_num = vertices.size();
 	normals.resize(vertex_num, make_float3(0.0, 0.0, 0.0));
 

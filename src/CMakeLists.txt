@@ -36,6 +36,8 @@ if(GLUT_FOUND AND OPENGL_FOUND)
     random.h
     utils.h
     utils.cpp
+    tiny_obj_loader.h
+    PathTracerScene.h
     )
 
 else()
