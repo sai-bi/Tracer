@@ -35,6 +35,7 @@
 #include "helpers.h"
 #include <fstream>
 #include "PathTracerScene.h"
+#include "ObjLoader.h"
 
 using namespace optix;
 using namespace std;
