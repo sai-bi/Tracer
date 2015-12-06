@@ -93,246 +93,54 @@ static __device__ inline float3 powf(float3 a, float exp)
 
 // For miss program
 rtDeclareVariable(float3,       bg_color, , );
-
 rtDeclareVariable(float3,        emission_color, , );
 
-RT_PROGRAM void diffuseEmitter()
-{
-  current_prd.radiance = current_prd.countEmitted? emission_color : make_float3(0.f);
-  current_prd.done = true;
-}
-
-// rtDeclareVariable(float3, diffuse_color, , );
+// For envirnoment map
 rtTextureSampler<float4, 2> envmap;
-RT_PROGRAM void diffuse()
-{
-  // if(current_prd.depth == 1){
-	 //  current_prd.sh_coeff = 0.0 * current_prd.sh_coeff;
-  //     return;
-  // }
 
-  float3 world_shading_normal   = normalize( rtTransformNormal( RT_OBJECT_TO_WORLD, shading_normal ) );
-  float3 world_geometric_normal = normalize( rtTransformNormal( RT_OBJECT_TO_WORLD, geometric_normal ) );
+// For shadow ray
+rtDeclareVariable(PerRayData_pathtrace_shadow, current_prd_shadow, rtPayload, );
 
-  float3 ffnormal = faceforward(world_shading_normal, -ray.direction, world_geometric_normal);
+// For vertex tracer
+rtBuffer<MyVertex>  vertices;
 
-  float3 hitpoint = ray.origin + t_hit * ray.direction;
-  current_prd.origin = hitpoint;
+// 
 
-  // by bisai 
-  float3 diffuse_color = make_float3(0.8f, 0.8f, 0.8f);
 
-  float z1=rnd(current_prd.seed);
-  float z2=rnd(current_prd.seed);
-  float3 p;
-  cosine_sample_hemisphere(z1, z2, p);
-  float3 v1, v2;
-  createONB(ffnormal, v1, v2);
-  current_prd.direction = v1 * p.x + v2 * p.y + ffnormal * p.z;
-
-  // float3 normal_color = (normalize(world_shading_normal)*0.5f + 0.5f)*0.9;
-  // current_prd.attenuation = current_prd.attenuation * diffuse_color; // use the diffuse_color as the diffuse response
-   current_prd.countEmitted = false;
-   current_prd.sh_coeff = 0.0 * current_prd.sh_coeff;
-
-   Matrix3x3 li;
-   li  = 0.0 * li;
-   //return;
-   int resolution = 10;
-   for(int i = 0;i < resolution;i++){
-       for(int j = 0;j < resolution;j++){
-            float z1 = (i + 0.5) / (float)resolution;
-            float z2 = (j + 0.5)/ (float)resolution;
-            float3 p;
-            cosine_sample_hemisphere(z1, z2, p);
-            float3 ray_direction = v1 * p.x  + v2 * p.y  + ffnormal * p.z;
-
-			PerRayData_pathtrace_shadow shadow_prd;
-			Ray shadow_ray = make_Ray(hitpoint, ray_direction, pathtrace_shadow_ray_type, scene_epsilon, RT_DEFAULT_MAX);
-		    shadow_prd.inShadow = false;
-			rtTrace(top_object, shadow_ray, shadow_prd);
-
-			float3 d = ray_direction;
-			Matrix3x3 result;
-			float* data = result.getData();
-			if (!shadow_prd.inShadow){
-				data[0] = 0.282095;
-				data[1] = 0.488603 * d.y; data[2] = 0.488603 * d.z; data[3] = 0.488603 * d.x;
-				data[4] = 1.092548 * d.x * d.y;
-				data[5] = 1.092548 * d.y * d.z;
-				data[6] = 0.315392 * (3 * d.z * d.z - 1);
-				data[7] = 1.092548 * d.x * d.z;
-				data[8] = 0.546274 * (d.x * d.x - d.y * d.y);
-				/// li += (result * (0.7 / M_PIf));
-				li += result;
-			}
-       }
-   }
-
-   current_prd.sh_coeff = li / (resolution * resolution);
-
-  // current_prd.sh_result = li / (resolution * resolution); 
-
-  // // Compute direct light...
-  // // Or shoot one...
-  // float3 result = make_float3(0.0f);
-
-  // sample direct illumination
-  /*
-  unsigned int sample_num = 400;
-  for (int i = 0;i < sample_num;i++){
-      // float z1=rnd(current_prd.seed);
-      // float z2=rnd(current_prd.seed);
-      float z1 = (i % 20 + 0.5) / 20;
-      float z2 = (i / 20 + 0.5) / 20;
-      float3 p;
-      cosine_sample_hemisphere(z1, z2, p);
-      float3 direction = normalize(v1 * p.x + v2 * p.y + ffnormal * p.z);
-
-      PerRayData_pathtrace_shadow shadow_prd;
-      Ray shadow_ray = make_Ray( hitpoint, direction, pathtrace_shadow_ray_type, scene_epsilon, 100);
-      rtTrace(top_object, shadow_ray, shadow_prd);
-      
-      if(!shadow_prd.inShadow){
-          float theta = atan2f(direction.x, direction.z);
-          float phi = M_PIf * 0.5f - acosf(direction.y);
-          float u = (theta + M_PIf) * (0.5f * M_1_PIf);
-          float v = 0.5f * (1.0f + sin(phi));
-          float3 color = make_float3(tex2D(envmap, u, v));
-          result = result + color;
-      }
-  }
-
-  result = result / sample_num;
-  */
-  // compute light from environment map
-  // current_prd.radiance = result;
-  // current_prd.sh_coeff = 0.0 * current_prd.sh_coeff;
-}
-
-rtDeclareVariable(float3,        glass_color, , );
-rtDeclareVariable(float,         index_of_refraction, , );
-
-RT_PROGRAM void glass_refract()
-{
-  float3 world_shading_normal   = normalize( rtTransformNormal( RT_OBJECT_TO_WORLD, shading_normal ) );
-  float3 world_geometric_normal = normalize( rtTransformNormal( RT_OBJECT_TO_WORLD, geometric_normal ) );
-
-  float3 ffnormal = faceforward( world_shading_normal, -ray.direction, world_geometric_normal );
-
-  float3 hitpoint = ray.origin + t_hit * ray.direction;
-  current_prd.origin = hitpoint;
-  current_prd.countEmitted = true;
-  float iof;
-  if (current_prd.inside) {
-    // Shoot outgoing ray
-    iof = 1.0f/index_of_refraction;
-  } else {
-    iof = index_of_refraction;
-  }
-  refract(current_prd.direction, ray.direction, ffnormal, iof);
-  //prd.direction = reflect(ray.direction, ffnormal);
-
-  if (current_prd.inside) {
-    // Compute Beer's law
-    current_prd.attenuation = current_prd.attenuation * powf(glass_color, t_hit);
-  }
-  current_prd.inside = !current_prd.inside;
-
-  current_prd.radiance = make_float3(0.0f);
-}
-
-//-----------------------------------------------------------------------------
-//
-//  Exception program
-//
-//-----------------------------------------------------------------------------
-
-RT_PROGRAM void exception()
-{
+RT_PROGRAM void exception(){
   output_buffer[launch_index] = make_float4(bad_color, 0.0f);
 }
 
 
-//-----------------------------------------------------------------------------
-//
-//  Miss program
-//
-//-----------------------------------------------------------------------------
-
-RT_PROGRAM void miss()
-{
+RT_PROGRAM void miss(){
   current_prd.radiance = bg_color;
   current_prd.done = true;
 }
 
 
-rtDeclareVariable(PerRayData_pathtrace_shadow, current_prd_shadow, rtPayload, );
-RT_PROGRAM void shadow()
-{
+RT_PROGRAM void shadow(){
   current_prd_shadow.inShadow = true;
   rtTerminateRay();
 }
 
 
-RT_PROGRAM void envmap_miss()
-{
-    // printf("envmap miss\n");
-    // float theta = atan2f(ray.direction.x, ray.direction.z);
-    // float phi = M_PIf * 0.5f - acosf(ray.direction.y);
-    // float u = (theta + M_PIf) * (0.5f * M_1_PIf);
-    // float v = 0.5f * (1.0f + sin(phi));
-    // current_prd.radiance = make_float3(tex2D(envmap, u, v));
-    float3 d = normalize(ray.direction);
-    
-    Matrix3x3 result;
-    float* data = result.getData();
-    data[0] = 0.282095;
-    data[1] = 0.488603 * d.y; data[2] = 0.488603 * d.z; data[3] = 0.488603 * d.x;
-    data[4] = 1.092548 * d.x * d.y;
-    data[5] = 1.092548 * d.y * d.z;
-    data[6] = 0.315392 * (3 * d.z * d.z - 1);
-    data[7] = 1.092548 * d.x * d.z;
-    data[8] = 0.546274 * (d.x * d.x - d.y * d.y);
-    
-    current_prd.sh_coeff = result;
+RT_PROGRAM void envmap_miss(){
+	float theta = atan2f(ray.direction.x, ray.direction.z);
+	float phi = M_PIf * 0.5f - acosf(ray.direction.y);
+	float u = (theta + M_PIf) * (0.5f * M_1_PIf);
+	float v = 0.5f * (1.0f + sin(phi));
+	current_prd.radiance = make_float3(tex2D(envmap, u, v));
     current_prd.done = true;
 }
 
 
-// Pure mirrow reflection
-RT_PROGRAM void MirrorReflection(){
-    float3 world_shading_normal = normalize(rtTransformNormal(RT_OBJECT_TO_WORLD, shading_normal));
-    float3 world_geometric_normal = normalize(rtTransformNormal(RT_OBJECT_TO_WORLD, geometric_normal));
 
-    float3 ffnormal = faceforward(world_shading_normal, -ray.direction, world_geometric_normal);
+RT_PROGRAM void one_bounce_diffuse_closest_hit(){
 
-    float3 hitpoint = ray.origin + t_hit * ray.direction;
-    current_prd.origin = hitpoint;
-
-    // by bisai 
-    float3 diffuse_color = make_float3(0.8f, 0.8f, 0.8f);
-
-    float z1 = rnd(current_prd.seed);
-    float z2 = rnd(current_prd.seed);
-    float3 p;
-    cosine_sample_hemisphere(z1, z2, p);
-    float3 v1, v2;
-    createONB(ffnormal, v1, v2);
-    
-    float3 reflect_direction = reflect(ray.direction, ffnormal);
-    current_prd.direction = reflect_direction; // specular reflection
-
-    float3 normal_color = (normalize(world_shading_normal)*0.5f + 0.5f)*0.9;
-    current_prd.attenuation = current_prd.attenuation * diffuse_color; // use the diffuse_color as the diffuse response
-    current_prd.countEmitted = false;
-
-    current_prd.radiance = make_float3(0.0f);
 }
 
-rtBuffer<MyVertex>  vertices;
-rtDeclareVariable(unsigned int, samples_per_vertex, , );
-// ray trace each vertex
+
+
 RT_PROGRAM void VertexTracer(){
     int index = launch_index.x;
     float3 vertex_pos = vertices[index].vertex;
@@ -407,59 +215,6 @@ RT_PROGRAM void VertexTracer(){
 
 
 
-RT_PROGRAM void DirectRender(){
-    unsigned int resolution = 64;
-    int index = launch_index.x;
-    float3 vertex_pos = vertices[index].vertex;
-    float3 normal = vertices[index].normal;
-    normal = normalize(normal);
-    unsigned int seed = tea<16>(index, 1);
-
-    float3 v1, v2;
-    createONB(normal, v1, v2);
-    Matrix3x3 li; 
-    li = 0.0 * li;
-
-    for(unsigned int i = 0;i < resolution;i++){
-        for (unsigned int j = 0;j < resolution; j++){
-            float z1 = (i + 0.5) / (float)resolution;
-            float z2 = (j + 0.5)/ (float)resolution;
-            float3 p;
-            cosine_sample_hemisphere(z1, z2, p);
-            float3 ray_direction = v1 * p.x  + v2 * p.y  + normal * p.z;
-                        
-            ray_direction = normalize(ray_direction);
-
-            PerRayData_pathtrace_shadow shadow_prd;
-            Ray shadow_ray = make_Ray(vertex_pos, ray_direction, pathtrace_shadow_ray_type, scene_epsilon, RT_DEFAULT_MAX);
-            shadow_prd.inShadow = false;
-            rtTrace(top_object, shadow_ray, shadow_prd);
-
-            float3 d = ray_direction;
-            Matrix3x3 result;
-            float* data = result.getData();
-            if(!shadow_prd.inShadow){
-                data[0] = 0.282095;
-                data[1] = 0.488603 * d.y; 
-				data[2] = 0.488603 * d.z; 
-				data[3] = 0.488603 * d.x;
-                data[4] = 1.092548 * d.x * d.y;
-                data[5] = 1.092548 * d.y * d.z;
-                data[6] = 0.315392 * (3 * d.z * d.z - 1);
-                data[7] = 1.092548 * d.x * d.z;
-                data[8] = 0.546274 * (d.x * d.x - d.y * d.y);
-                /// li += (result * (0.7 / M_PIf));
-                li += result;
-            }
-        }
-    }
-    li = li / (resolution * resolution);
-    // li = li * (2 * M_PIf / (resolution * resolution));
-
-    output_buffer_1[launch_index] = make_float4(li[0], li[1], li[2], 0.0f);
-    output_buffer_2[launch_index] = make_float4(li[3], li[4], li[5], 0.0f);
-    output_buffer_3[launch_index] = make_float4(li[6], li[7], li[8], 0.0f);
-}
 
 RT_PROGRAM void InDirectRender(){
     unsigned int resolution = 10;
