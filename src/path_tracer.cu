@@ -86,7 +86,8 @@ rtDeclareVariable(PerRayData_pathtrace_shadow, current_prd_shadow, rtPayload, );
 // For vertex tracer
 rtBuffer<MyVertex>  vertices;
 
-
+// For diffuse texture map
+rtTextureSampler<float4, 2>   diffuse_map;         
 
 RT_PROGRAM void exception(){
   output_buffer[launch_index] = make_float4(bad_color, 0.0f);
@@ -153,7 +154,7 @@ RT_PROGRAM void one_bounce_diffuse_closest_hit(){
             }
             nx = sqrt_num_samples;
         }
-        result *= (Kd) / ((float)(M_PIf * sqrt_num_samples * sqrt_num_samples));
+        result *= (Kd) / ((float)(sqrt_num_samples * sqrt_num_samples));
     }
 
     current_prd.result = result;
@@ -191,11 +192,11 @@ RT_PROGRAM void vertex_camera(){
 
                 result += radiance_prd.result;
             }
-            nx = sqrt_num_samples;
         }
+        nx = sqrt_num_samples;
     }
 
-    result *= (Kd)/((float)(M_PIf*sqrt_diffuse_samples*sqrt_diffuse_samples));
+    result *= (Kd)/((float)(sqrt_diffuse_samples*sqrt_diffuse_samples));
 
     output_buffer[launch_index] = make_float4(result, 0.0f);
 }

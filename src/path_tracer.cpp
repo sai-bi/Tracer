@@ -53,7 +53,7 @@ void PathTracerScene::initScene(InitialCameraData& camera_data){
 	m_context->setExceptionProgram( 0, exception_program );
   
 	// load env map
-	const float3 default_color = make_float3(0.8f, 0.8f, 0.8f);
+	const float3 default_color = make_float3(1.0f, 1.0f, 1.0f);
 	m_context["envmap"]->setTextureSampler(loadTexture(m_context, m_env_path, default_color));
 	m_context->setMissProgram(0, m_context->createProgramFromPTXFile(ptx_path, "envmap_miss"));
 
@@ -97,8 +97,6 @@ void PathTracerScene::trace( const RayGenCameraData& camera_data )
 	RTsize buffer_width, buffer_height;
 	buffer->getSize( buffer_width, buffer_height );
 
-	printf("%d %d", buffer_width, buffer_height);
-
 	bool camera_changed = m_camera_changed;
 	if( m_camera_changed ) {
 		m_camera_changed = false;
@@ -111,7 +109,8 @@ void PathTracerScene::trace( const RayGenCameraData& camera_data )
 					static_cast<unsigned int>(buffer_width),
 					static_cast<unsigned int>(buffer_height)
 					);
-	SaveFrame("bunny_with_base_direct.txt");
+	
+	SaveFrame(this->m_output_path.c_str());
 	exit(-1);
 }
 
@@ -156,7 +155,7 @@ void PathTracerScene::setMaterial( GeometryInstance& gi,
 void PathTracerScene::createGeometry(){
     // Set up material
 	Material diffuse = m_context->createMaterial();
-	Program diffuse_ch = m_context->createProgramFromPTXFile(ptxpath("path_tracer", "path_tracer.cu"), "diffuse");
+	Program diffuse_ch = m_context->createProgramFromPTXFile(ptxpath("path_tracer", "path_tracer.cu"), "one_bounce_diffuse_closest_hit");
 	Program diffuse_ah = m_context->createProgramFromPTXFile(ptxpath("path_tracer", "path_tracer.cu"), "shadow");
 	diffuse->setClosestHitProgram(0, diffuse_ch);
 	diffuse->setAnyHitProgram(1, diffuse_ah);
