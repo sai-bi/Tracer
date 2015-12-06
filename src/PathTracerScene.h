@@ -26,22 +26,24 @@ public:
 	virtual void   trace(const RayGenCameraData& camera_data);
 	virtual optix::Buffer getOutputBuffer();
 
-	void   setNumSamples(unsigned int sns)                           { m_sqrt_num_samples = sns; }
-	void   setDimensions(const unsigned int w, const unsigned int h) { m_width = w; m_height = h; }
-	void   setFileName(std::string file_name){
+	void    setNumSamples(unsigned int sns)                           { m_sqrt_num_samples = sns; }
+	void    setDimensions(const unsigned int w, const unsigned int h) { m_width = w; m_height = h; }
+	void    setFileName(std::string file_name){
 		this->m_filename = file_name;
 	}
-	void setEnvmapPath(std::string path){
+	void    setEnvmapPath(std::string path){
 		this->m_env_path = path;
 	}
 
-	void setOutputPath(std::string output_path){
+	void    setOutputPath(std::string output_path){
 		this->m_output_path = output_path;
 	}
 
-	void LoadGeometry();
+	void	initContext();
 
-	void SaveFrame(const char* file_name);
+	void	LoadGeometry();
+
+	void	SaveFrame(const char* file_name);
 
 private:
 	// Should return true if key was handled, false otherwise.
