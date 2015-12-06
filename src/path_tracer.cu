@@ -29,27 +29,15 @@
 
 using namespace optix;
 
-struct PerRayData_pathtrace
-{
-  float3 result;
-  float3 radiance;
-  float3 attenuation;
-  float3 origin;
-  float3 direction;
-  unsigned int seed;
-  int depth;
-  int countEmitted;
-  int done;
-  int inside;
-
-  // @sai bi
-  Matrix3x3 sh_coeff;
-  Matrix3x3 sh_result;
+struct PerRayData_radiance{
+    float3 result;
+    float importance;
+    int depth;
 };
 
-struct PerRayData_pathtrace_shadow
-{
-  bool inShadow;
+
+struct PerRayData_pathtrace_shadow{
+    bool inShadow;
 };
 
 // Scene wide
@@ -66,21 +54,15 @@ rtDeclareVariable(unsigned int,  frame_number, , );
 rtDeclareVariable(unsigned int,  sqrt_num_samples, , );
 rtBuffer<float4, 2>              output_buffer;
 
-rtBuffer<float4, 2> output_buffer_1;
-rtBuffer<float4, 2> output_buffer_2;
-rtBuffer<float4, 2> output_buffer_3;
 
-
-rtBuffer<ParallelogramLight>     lights;
-
-rtDeclareVariable(unsigned int,  pathtrace_ray_type, , );
-rtDeclareVariable(unsigned int,  pathtrace_shadow_ray_type, , );
+rtDeclareVariable(unsigned int,  radiance_ray_type, , );
+rtDeclareVariable(unsigned int,  shadow_ray_type, , );
 rtDeclareVariable(unsigned int,  rr_begin_depth, , );
 
 rtDeclareVariable(float3, geometric_normal, attribute geometric_normal, ); 
 rtDeclareVariable(float3, shading_normal,   attribute shading_normal, ); 
 
-rtDeclareVariable(PerRayData_pathtrace, current_prd, rtPayload, );
+rtDeclareVariable(PerRayData_radiance, current_prd, rtPayload, );
 
 rtDeclareVariable(optix::Ray, ray,          rtCurrentRay, );
 rtDeclareVariable(float,      t_hit,        rtIntersectionDistance, );
@@ -104,7 +86,6 @@ rtDeclareVariable(PerRayData_pathtrace_shadow, current_prd_shadow, rtPayload, );
 // For vertex tracer
 rtBuffer<MyVertex>  vertices;
 
-// 
 
 
 RT_PROGRAM void exception(){
@@ -113,8 +94,7 @@ RT_PROGRAM void exception(){
 
 
 RT_PROGRAM void miss(){
-  current_prd.radiance = bg_color;
-  current_prd.done = true;
+  current_prd.result = bg_color;
 }
 
 
@@ -129,14 +109,53 @@ RT_PROGRAM void envmap_miss(){
 	float phi = M_PIf * 0.5f - acosf(ray.direction.y);
 	float u = (theta + M_PIf) * (0.5f * M_1_PIf);
 	float v = 0.5f * (1.0f + sin(phi));
-	current_prd.radiance = make_float3(tex2D(envmap, u, v));
-    current_prd.done = true;
+	current_prd.result = make_float3(tex2D(envmap, u, v));
 }
 
 
-
 RT_PROGRAM void one_bounce_diffuse_closest_hit(){
+    float3 hit_point = ray.origin + t_hit * ray.direction;
+    float3 world_shading_normal   = normalize( rtTransformNormal( RT_OBJECT_TO_WORLD, shading_normal ) );
+    float3 world_geometric_normal = normalize( rtTransformNormal( RT_OBJECT_TO_WORLD, geometric_normal ) );
+    float3 ffnormal               = faceforward( world_shading_normal, -ray.direction, world_geometric_normal );
+    float2 uv                     = make_float2(texcoord);
 
+    float3 Kd = make_float3(tex2D(diffuse_map, uv.x, uv.y));
+    float3 result = make_float3(0);
+
+    // compute indirect bounce 
+    if(prd.detph < 1){
+        optix::Onb onb(ffnormal);
+        unsigned int seed = rot_seed(rnd_seeds[launch_index], frame);
+        const float inv_sqrt_samples = 1.0f / float(sqrt_num_samples);
+
+        int nx = sqrt_num_samples;
+        int ny = sqrt_num_samples;
+
+        while(nx--){
+            while(ny--){
+                float u1 = (float(nx) + rnd(seed)) * inv_sqrt_samples;
+                float u2 = (float(ny) + rnd(seed)) * inv_sqrt_samples;
+
+                float3 dir;
+                optix::cosine_sample_hemisphere(u1, u2, dir);
+                onb.inverse_transform(dir);
+
+                PerRayData_radiance radiance_prd;
+                radiance_prd.importance = current_prd.importance * optix::luminance(Kd);
+                radiance_prd.depth = current_prd.depth + 1;
+
+                if(radiance_prd.importance > 0.001f){
+                    optix::Ray radiance_ray = optix::make_Ray(hit_point, dir, radiance_ray_type, scene_epsilon, RT_DEFAULT_MAX);
+                    rtTrace(top_object, radiance_ray, radiance_prd);
+                    result += radiance_prd.result;
+                }
+            }
+        }
+        result *= (Kd) / ((float)(M_PIf * sqrt_num_samples * sqrt_num_samples));
+    }
+
+    current_prd.result = result;
 }
 
 
