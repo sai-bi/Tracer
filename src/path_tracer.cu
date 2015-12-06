@@ -132,8 +132,8 @@ RT_PROGRAM void one_bounce_diffuse_closest_hit(){
         int nx = sqrt_num_samples;
         int ny = sqrt_num_samples;
 
-        while(nx--){
-            while(ny--){
+        while(ny--){
+            while(nx--){
                 float u1 = (float(nx) + rnd(seed)) * inv_sqrt_samples;
                 float u2 = (float(ny) + rnd(seed)) * inv_sqrt_samples;
 
@@ -151,6 +151,7 @@ RT_PROGRAM void one_bounce_diffuse_closest_hit(){
                     result += radiance_prd.result;
                 }
             }
+            nx = sqrt_num_samples;
         }
         result *= (Kd) / ((float)(M_PIf * sqrt_num_samples * sqrt_num_samples));
     }
@@ -159,150 +160,46 @@ RT_PROGRAM void one_bounce_diffuse_closest_hit(){
 }
 
 
+RT_PROGRAM void vertex_camera(){
+    float3 vertex_pos = vertices[launch_index.x].vertex;
+    float3 vertex_normal = vertices[launch_index.x].normal;
+    vertex_normal = normalize(vertex_normal);
+    float3 result = make_float3(0);
 
-RT_PROGRAM void VertexTracer(){
-    int index = launch_index.x;
-    float3 vertex_pos = vertices[index].vertex;
-    float3 normal = vertices[index].normal;
-    normal = normalize(normal);
+    const float inv_sqrt_samples = 1.0f / (sqrt_num_samples);
+    int nx = sqrt_num_samples;
+    int ny = sqrt_num_samples;
+    unsigned int seed = rot_seed( rnd_seeds[ launch_index ], frame );
 
-    unsigned int seed = tea<16>(index, 1);
-    unsigned int sample_num = samples_per_vertex;
-    float3 result = make_float3(0.0f);
+    optix::Onb onb(vertex_normal);
+    float3 Kd = make_float3(1.0, 1.0, 1.0);
+    while(ny--){
+        while(nx--){
+            float u1 = (float(nx) + rnd( seed ) )*inv_sqrt_samples;
+            float u2 = (float(ny) + rnd( seed ) )*inv_sqrt_samples;
 
-    float3 v1, v2;
-    createONB(normal, v1, v2);
-    float3 direct_light = make_float3(0.0);
-    sample_num = 1000;
+            float3 dir;
+            optix::cosine_sample_hemisphere(u1, u2, dir);
+            onb.inverse_transform(dir);
 
+            PerRayData_radiance radiance_prd;
+            radiance_prd.importance = optix::luminance(Kd);
+            radiance_prd.depth = 0;
+            if(radiance_prd.importance > 0.001f) {
+                optix::Ray radiance_ray = optix::make_Ray(hit_point, dir, radiance_ray_type, scene_epsilon, RT_DEFAULT_MAX);
+                rtTrace(top_object, radiance_ray, radiance_prd);
 
-    do{
-        PerRayData_pathtrace prd;
-        prd.result = make_float3(0.0f);
-        prd.attenuation = make_float3(0.8f);
-        prd.countEmitted = true;
-        prd.done = false;
-        prd.inside = false;
-        prd.seed = seed;
-        prd.depth = 0;
-
-        // float z1 = (sample_num % 20 + 0.5) / 20;
-        // float z2 = (sample_num / 20 + 0.5) / 20;
-        float z1 = rnd(prd.seed);
-        float z2 = rnd(prd.seed);
-
-        float3 p;
-        cosine_sample_hemisphere(z1, z2, p);
-        float3 ray_direction = v1 * p.x  + v2 * p.y  + normal * p.z;
-
-        ray_direction = normalize(ray_direction);
-        float cos_theta = dot(ray_direction, normal);
-
-        float3 ray_origin = vertex_pos;
-        for(;;) {
-            Ray ray = make_Ray(ray_origin, ray_direction, pathtrace_ray_type, scene_epsilon, RT_DEFAULT_MAX);
-            rtTrace(top_object, ray, prd);
-            if(prd.done) {
-                prd.result += prd.radiance * prd.attenuation;
-                break;
+                result += radiance_prd.result;
             }
-
-            // RR: randomly reject some rays
-            if(prd.depth >= rr_begin_depth){
-                float pcont = fmaxf(prd.attenuation);
-                if(rnd(prd.seed) >= pcont)
-                    break;
-                prd.attenuation /= pcont;
-            }
-
-            prd.depth++;
-            prd.result += prd.radiance * prd.attenuation;
-            ray_origin = prd.origin;
-            ray_direction = prd.direction;
-        }
-
-        result += (prd.result);
-        seed = prd.seed;
-    } while(--sample_num);
-
-
-    result = result / 1000;
-
-    float3 pixel_color = result;
-    output_buffer[launch_index] = make_float4(pixel_color, 0.0f);
-}
-
-
-
-
-RT_PROGRAM void InDirectRender(){
-    unsigned int resolution = 10;
-    int index = launch_index.x;
-    float3 vertex_pos = vertices[index].vertex;
-    float3 normal = vertices[index].normal;
-    normal = normalize(normal);
-    unsigned int seed = tea<16>(index, 1);
-
-    float3 v1, v2;
-    createONB(normal, v1, v2);
-    Matrix3x3 li;
-    li = 0.0 * li;
-
-    for (unsigned int i = 0; i < resolution; i++){
-        for (unsigned int j = 0; j < resolution; j++){
-            float z1 = (i + 0.5) / (float)resolution;
-            float z2 = (j + 0.5) / (float)resolution;
-            
-            PerRayData_pathtrace prd;
-            prd.sh_result = 0.0f * prd.sh_result;
-            prd.countEmitted = true;
-            prd.done = false;
-            prd.inside = false;
-            prd.seed = seed;
-            prd.depth = 0;
-            prd.sh_coeff = 0.0 * prd.sh_coeff;
-
-            float3 p;
-            cosine_sample_hemisphere(z1, z2, p);
-            float3 ray_direction = v1 * p.x + v2 * p.y + normal * p.z;
-            ray_direction = normalize(ray_direction);
-
-            float3 ray_origin = vertex_pos;
-
-            for (;;) {
-                Ray ray = make_Ray(ray_origin, ray_direction, pathtrace_ray_type, scene_epsilon, RT_DEFAULT_MAX);
-                rtTrace(top_object, ray, prd);
-                if (prd.done) {
-                    prd.sh_result += prd.sh_coeff;
-                    break;
-                }
-
-                // RR: randomly reject some rays
-                
-
-                prd.depth++;
-                prd.sh_result += prd.sh_coeff ;
-                ray_origin = prd.origin;
-                ray_direction = prd.direction;
-				if (prd.depth == 1){
-					break;
-				}
-            }
-
-
-            li = li + prd.sh_result;
-            // Ray ray = make_Ray(ray_origin, ray_direction, pathtrace_ray_type, scene_epsilon, RT_DEFAULT_MAX);
-            // rtTrace(top_object, ray, prd);
+            nx = sqrt_num_samples;
         }
     }
 
-    li = li / (resolution * resolution);
-    // li = li * (2 * M_PIf / (resolution * resolution));
+    result *= (Kd)/((float)(M_PIf*sqrt_diffuse_samples*sqrt_diffuse_samples));
 
-    output_buffer_1[launch_index] = make_float4(li[0], li[1], li[2], 0.0f);
-    output_buffer_2[launch_index] = make_float4(li[3], li[4], li[5], 0.0f);
-    output_buffer_3[launch_index] = make_float4(li[6], li[7], li[8], 0.0f);
+    output_buffer[launch_index] = make_float4(result, 0.0f);
 }
+
 
 
 
