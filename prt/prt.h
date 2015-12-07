@@ -8,3 +8,4 @@
 
 void CreateCubemap(int face_index, int x, int y, int cubemap_length, std::vector<cv::Mat>& cubeface);
 int ConvertCubemapToLightProbe(cv::Mat& light_probe, const std::vector<cv::Mat>& cubemap, const cv::Size light_probe_size);
+int subPixelF(cv::Vec3f& color, const cv::Mat& image, float x, float y);
