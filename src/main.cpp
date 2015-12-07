@@ -61,14 +61,13 @@ int main(int argc, char** argv)
 	}
 	string line = "";
 	while (getline(fin, line)){
-		int index = line.find_first_not_of("=");
+		int index = line.find_first_of("=");
 		string var_name = line.substr(0, index);
 		string var_value = line.substr(index + 1);
 
 		std::regex e("\\\\");
 		var_value = std::regex_replace(var_value, e, "/$2");
 		cout << var_name << " " << var_value << endl;
-		continue;
 		if (var_name == "scene_path"){
 			scene.setFileName(var_value);
 		}

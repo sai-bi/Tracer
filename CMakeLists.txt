@@ -281,6 +281,9 @@ add_subdirectory(src)
 # Our sutil library.  The rules to build it are found in the subdirectory.
 add_subdirectory(sutil)
 
+# add prt directory
+add_subdirectory(prt)
+
 # nvcommon library used by isgShadows.  If you don't compile isgShadows, you can comment
 # this out.
 add_subdirectory(nvcommon)

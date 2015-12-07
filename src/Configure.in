@@ -1,5 +1,4 @@
-scene_path="C:\Users\bisai\Documents\GitHub\Tracer\data\toasters"
-sqrt_sample_num="100"
-env_path="C:\Users\bisai\Documents\GitHub\Tracer\data\toasters"
-output_path="C:\Users\bisai\Documents\GitHub\Tracer\data\toasters"
-
+scene_path=C:\Users\bisai\Documents\GitHub\Tracer\data\teapot\teapot.obj
+sqrt_sample_num=100
+env_path=C:\Users\bisai\Documents\GitHub\Tracer\data\envmap\grace-new.hdr
+output_path=C:\Users\bisai\Documents\GitHub\Tracer\data\output\test.txt

@@ -131,7 +131,8 @@ RT_PROGRAM void one_bounce_diffuse_closest_hit(){
     float3 ffnormal               = faceforward( world_shading_normal, -ray.direction, world_geometric_normal );
     float2 uv                     = make_float2(texcoord);
 
-    float3 Kd = make_float3(tex2D(diffuse_map, uv.x, uv.y));
+    //float3 Kd = make_float3(tex2D(diffuse_map, uv.x, uv.y));
+	float3 Kd = make_float3(0.8, 0.8, 0.8);
     float3 result = make_float3(0);
 
     // compute indirect bounce 

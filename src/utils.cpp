@@ -28,7 +28,6 @@ void LoadObjFromFile(const char* file_name, vector<MyVertex>& vertices){
 	printf("Number of materials: %d\n", materials.size());
 
 	// get vertex info
-	vector<MyVertex> all_vertices;
 	for (size_t i = 0; i < shapes.size(); i++){
 		const mesh_t* mesh = &shapes[i].mesh;
 		
@@ -58,10 +57,10 @@ void LoadObjFromFile(const char* file_name, vector<MyVertex>& vertices){
 		
 		for (size_t v = 0; v < vertex_list.size(); v++){
 			vertex_list[v].normal = optix::normalize(vertex_list[v].normal);
+			vertices.push_back(vertex_list[v]);
 		}
-
-		all_vertices.insert(all_vertices.end(), vertex_list.begin(), vertex_list.end());
 	}
+	printf("Finish loading obj...\n");
 }
 
 

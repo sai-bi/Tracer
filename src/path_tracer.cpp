@@ -23,7 +23,7 @@ void PathTracerScene::initContext(){
 	m_context["pathtrace_shadow_ray_type"]->setUint(1u);
 	m_context["pathtrace_bsdf_shadow_ray_type"]->setUint(2u);
 	m_context["rr_begin_depth"]->setUint(m_rr_begin_depth);
-	m_context["sqrt_sample_num"]->setUint(m_sqrt_num_samples);
+	m_context["sqrt_num_samples"]->setUint(m_sqrt_num_samples);
 
 	m_context["eye"]->setFloat(make_float3(0.0f, 0.0f, 0.0f));
 	m_context["U"]->setFloat(make_float3(0.0f, 0.0f, 0.0f));
@@ -53,10 +53,10 @@ void PathTracerScene::initScene(InitialCameraData& camera_data){
 
 
 	// Setup programs
-	std::string ptx_path = ptxpath( "path_tracer", "path_tracer.cu" );
-	Program ray_gen_program = m_context->createProgramFromPTXFile(ptx_path, "DirectRender");
-
+	std::string ptx_path = ptxpath( "PathTracer", "path_tracer.cu" );
+	Program ray_gen_program = m_context->createProgramFromPTXFile(ptx_path, "vertex_camera");
 	m_context->setRayGenerationProgram( 0, ray_gen_program );
+
 	Program exception_program = m_context->createProgramFromPTXFile( ptx_path, "exception" );
 	m_context->setExceptionProgram( 0, exception_program );
   
@@ -75,14 +75,14 @@ void PathTracerScene::initScene(InitialCameraData& camera_data){
 	createGeometry();
 
 
-	float max_dim = m_aabb.maxExtent();
+	/*float max_dim = m_aabb.maxExtent();
 	float3 eye = m_aabb.center();
-	eye.z += 2.0f * max_dim;
+	eye.z += 2.0f * max_dim;*/
 
-	camera_data = InitialCameraData(eye,                           // eye
-									m_aabb.center(),               // lookat
-									make_float3(0.0f, 1.0f, 0.0f), // up
-									30.0f);
+	//camera_data = InitialCameraData(eye,                           // eye
+	//								m_aabb.center(),               // lookat
+	//								make_float3(0.0f, 1.0f, 0.0f), // up
+	//								30.0f);
 
 	// Finalize
 	m_context->validate();
@@ -163,8 +163,8 @@ void PathTracerScene::setMaterial( GeometryInstance& gi,
 void PathTracerScene::createGeometry(){
     // Set up material
 	Material diffuse = m_context->createMaterial();
-	Program diffuse_ch = m_context->createProgramFromPTXFile(ptxpath("path_tracer", "path_tracer.cu"), "one_bounce_diffuse_closest_hit");
-	Program diffuse_ah = m_context->createProgramFromPTXFile(ptxpath("path_tracer", "path_tracer.cu"), "shadow");
+	Program diffuse_ch = m_context->createProgramFromPTXFile(ptxpath("PathTracer", "path_tracer.cu"), "one_bounce_diffuse_closest_hit");
+	Program diffuse_ah = m_context->createProgramFromPTXFile(ptxpath("PathTracer", "path_tracer.cu"), "shadow");
 	diffuse->setClosestHitProgram(0, diffuse_ch);
 	diffuse->setAnyHitProgram(1, diffuse_ah);
 	diffuse["Kd_map"]->setTextureSampler(loadTexture(m_context, "", make_float3(1.f, 1.f, 1.f)));
@@ -176,7 +176,8 @@ void PathTracerScene::createGeometry(){
 	m_context["top_shadower"]->set(geom_group);
 
 	ObjLoader* loader = new ObjLoader(m_filename.c_str(), m_context, geom_group, diffuse, true);
-	m_aabb = loader->getSceneBBox();
+	cout << "load finish" << endl;
+	//m_aabb = loader->getSceneBBox();
 }
 
 
@@ -204,6 +205,7 @@ void PathTracerScene::SaveFrame(const char* filename){
 				src_1++;
 			}
 			src_1++;
+			fprintf(pFile, "\n");
 		}
 	}
 	rtBufferUnmap(buffer);
