@@ -68,6 +68,8 @@ private:
 	std::string    m_env_path;
 	optix::Aabb    m_aabb;
 	std::string    m_output_path;
+	
+	optix::Buffer  m_rnd_seeds;
 };
 
 #endif

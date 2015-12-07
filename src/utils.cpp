@@ -16,7 +16,7 @@ void LoadObjFromFile(const char* file_name, vector<MyVertex>& vertices){
 	vector<material_t> materials;
 	
 	string err = " ";
-	bool ret = LoadObj(shapes, materials, err, file_name);
+	bool ret = tinyobj::LoadObj(shapes, materials, err, file_name);
 	if (!err.empty()){
 		cerr << err << endl;
 	}

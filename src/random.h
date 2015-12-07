@@ -18,7 +18,7 @@
  * INABILITY TO USE THIS SOFTWARE, EVEN IF NVIDIA HAS BEEN ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGES
  */
-
+#pragma once
 #include <optixu/optixu_math_namespace.h>
 
 template<unsigned int N>

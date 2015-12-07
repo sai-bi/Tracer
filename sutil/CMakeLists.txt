@@ -69,6 +69,8 @@ set(sources
   sutil.c
   sutil.h
   sutilapi.h
+  ObjLoader.cpp
+  ObjLoader.h
   )
 
 if(OPENGL_FOUND AND NOT APPLE)

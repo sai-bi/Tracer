@@ -35,13 +35,21 @@ void PathTracerScene::initContext(){
 }
 
 void PathTracerScene::initScene(InitialCameraData& camera_data){
-
+	
+	this->initContext();
 	LoadGeometry();
 
 	// Setup output buffer
 	Variable output_buffer = m_context["output_buffer"];
 	Buffer buffer = createOutputBuffer( RT_FORMAT_FLOAT4, m_width, m_height );
 	output_buffer->set(buffer);
+
+	// Setup random seeds buffer
+	m_rnd_seeds = m_context->createBuffer(RT_BUFFER_INPUT_OUTPUT | RT_BUFFER_GPU_LOCAL, RT_FORMAT_UNSIGNED_INT, m_width, m_height);
+	m_context["rnd_seeds"]->setBuffer(m_rnd_seeds);
+	unsigned int* seeds = static_cast<unsigned int*>(m_rnd_seeds->map());
+	fillRandBuffer(seeds, m_width * m_height);
+	m_rnd_seeds->unmap();
 
 
 	// Setup programs

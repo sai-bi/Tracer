@@ -52,7 +52,7 @@ rtDeclareVariable(float3,        W, , );
 rtDeclareVariable(float3,        bad_color, , );
 rtDeclareVariable(unsigned int,  frame_number, , );
 rtDeclareVariable(unsigned int,  sqrt_num_samples, , );
-rtBuffer<float4, 2>              output_buffer;
+
 
 
 rtDeclareVariable(unsigned int,  radiance_ray_type, , );
@@ -67,6 +67,8 @@ rtDeclareVariable(PerRayData_radiance, current_prd, rtPayload, );
 rtDeclareVariable(optix::Ray, ray,          rtCurrentRay, );
 rtDeclareVariable(float,      t_hit,        rtIntersectionDistance, );
 rtDeclareVariable(uint2,      launch_index, rtLaunchIndex, );
+rtDeclareVariable(int, frame, , );
+
 
 static __device__ inline float3 powf(float3 a, float exp)
 {
@@ -87,7 +89,15 @@ rtDeclareVariable(PerRayData_pathtrace_shadow, current_prd_shadow, rtPayload, );
 rtBuffer<MyVertex>  vertices;
 
 // For diffuse texture map
-rtTextureSampler<float4, 2>   diffuse_map;         
+rtTextureSampler<float4, 2>   diffuse_map;       
+rtDeclareVariable(float3, texcoord, attribute texcoord, );
+
+// For output
+rtBuffer<float4, 2>              output_buffer;
+
+// For random seeds
+rtBuffer<unsigned int, 2>     rnd_seeds;
+
 
 RT_PROGRAM void exception(){
   output_buffer[launch_index] = make_float4(bad_color, 0.0f);
@@ -125,7 +135,7 @@ RT_PROGRAM void one_bounce_diffuse_closest_hit(){
     float3 result = make_float3(0);
 
     // compute indirect bounce 
-    if(prd.detph < 1){
+    if(current_prd.depth < 1){
         optix::Onb onb(ffnormal);
         unsigned int seed = rot_seed(rnd_seeds[launch_index], frame);
         const float inv_sqrt_samples = 1.0f / float(sqrt_num_samples);
@@ -174,6 +184,7 @@ RT_PROGRAM void vertex_camera(){
 
     optix::Onb onb(vertex_normal);
     float3 Kd = make_float3(1.0, 1.0, 1.0);
+	float3 hit_point = vertex_pos;
     while(ny--){
         while(nx--){
             float u1 = (float(nx) + rnd( seed ) )*inv_sqrt_samples;
@@ -196,7 +207,7 @@ RT_PROGRAM void vertex_camera(){
         nx = sqrt_num_samples;
     }
 
-    result *= (Kd)/((float)(sqrt_diffuse_samples*sqrt_diffuse_samples));
+	result *= (Kd) / ((float)(sqrt_num_samples*sqrt_num_samples));
 
     output_buffer[launch_index] = make_float4(result, 0.0f);
 }
