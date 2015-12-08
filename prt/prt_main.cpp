@@ -5,9 +5,32 @@ using namespace Eigen;
 using namespace cv;
 using namespace optix;
 
-int main(int argc, char** argv){
+void test(){
+	string output_folder = "C:\\Users\\bisai\\Documents\\GitHub\\Tracer\\data\\toasters\\004\\face_0\\";
+	Mat result = imread(output_folder + to_string(0) + ".hdr", cv::IMREAD_ANYCOLOR | cv::IMREAD_ANYDEPTH);
+	
+	for (int i = 0; i < 16; i++){
+		Mat img = imread(output_folder + to_string(i) + ".hdr", cv::IMREAD_ANYCOLOR | cv::IMREAD_ANYDEPTH);
+		if (i == 0){
+			result = img;
+		}
+		else{
+			result += img;
+		}
+	}
 
-	int cubemap_length = 16;
+	FILE* file = fopen("C:\\Users\\bisai\\Documents\\GitHub\\Tracer\\data\\toasters\\004\\face_0\\tea.txt", "w");
+	for (int i = 0; i < result.rows; i++){
+		Vec3f v = result.at<Vec3f>(i, 0);
+		fprintf(file, "c %f %f %f\n", v[0], v[1], v[2]);
+	}
+	fclose(file);
+}
+
+int main(int argc, char** argv){
+	test();
+	return 0 ;
+	int cubemap_length = 4;
 	cv::Size light_probe_size(256, 128);
 
 	/*vector<Mat> cubemap_face;
@@ -17,11 +40,11 @@ int main(int argc, char** argv){
 	imwrite("C:\\Users\\bisai\\Documents\\GitHub\\Tracer\\data\\scene\\env.exr", light_probe);*/
 
 
-	string obj_path = "C:\\Users\\bisai\\Documents\\GitHub\\Tracer\\data\\toasters\\Toasters004.obj";
-	//string obj_path = "C:\\Users\\bisai\\Documents\\GitHub\\Tracer\\data\\teapot\\bunny_with_base.obj";
+	//string obj_path = "C:\\Users\\bisai\\Documents\\GitHub\\Tracer\\data\\toasters\\Toasters004.obj";
+	string obj_path = "C:\\Users\\bisai\\Documents\\GitHub\\Tracer\\data\\teapot\\bunny_with_base.obj";
 	string output_folder = "C:\\Users\\bisai\\Documents\\GitHub\\Tracer\\data\\toasters\\004";
 	string tracer_path = "C:\\Users\\bisai\\Documents\\GitHub\\Tracer\\build\\bin\\Release\\PathTracer.exe";
-	int sqrt_num_samples = 100;
+	int sqrt_num_samples = 8;
 
 	PrepareDirectory(output_folder);
 

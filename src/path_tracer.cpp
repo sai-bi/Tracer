@@ -19,7 +19,7 @@ using namespace cv;
 void PathTracerScene::initContext(){
 	m_context->setRayTypeCount(3);
 	m_context->setEntryPointCount(1);
-	m_context->setStackSize(68000);
+	m_context->setStackSize(5000);
 
 	m_context["scene_epsilon"]->setFloat(1.e-3f);
 	m_context["pathtrace_ray_type"]->setUint(0u);
@@ -176,12 +176,18 @@ void PathTracerScene::createGeometry(){
 	vector<GeometryInstance> gis;
 	GeometryGroup geom_group = m_context->createGeometryGroup(gis.begin(), gis.end());
 	geom_group->setAcceleration(m_context->createAcceleration("Lbvh", "Bvh"));
+
+	ObjLoader* loader = new ObjLoader(m_filename.c_str(), m_context, geom_group, diffuse, false);
+	loader->load(Matrix4x4::scale(make_float3(1.0)));
+	/*OptiXMesh loader(m_context, geom_group, m_accel_desc);
+	loader.loadBegin_Geometry(m_filename);
+	cout << "load finish" << endl;
+	for (size_t i = 0; i < loader.getMaterialCount(); ++i) {
+		loader.setOptiXMaterial(static_cast<int>(i), diffuse);
+	}
+	loader.loadFinish_Materials();*/
 	m_context["top_object"]->set(geom_group);
 	m_context["top_shadower"]->set(geom_group);
-
-	// ObjLoader* loader = new ObjLoader(m_filename.c_str(), m_context, geom_group, diffuse, false);
-	OptiXMesh loader(m_context, geom_group, m_accel_desc);
-	cout << "load finish" << endl;
 	//m_aabb = loader->getSceneBBox();
 }
 
@@ -199,7 +205,7 @@ void PathTracerScene::SaveFrame(const char* filename){
 		exit(-1);
 	}*/
 
-	cv::Mat result(m_height * m_width, 1, CV_32FC3, 0);
+	cv::Mat result(m_height * m_width, 1, CV_32FC3);
 	int count = 0;
 	for (int j = m_height - 1; j >= 0; --j) {
 		float* src_1 = ((float*)imageData) + (4 * m_width*j);
@@ -215,10 +221,11 @@ void PathTracerScene::SaveFrame(const char* filename){
 			}
 			result.at<Vec3f>(count, 0) = pixel_v;
 			src_1++;
+			count++;
 			//fprintf(pFile, "\n");
 		}
 	}
-	
+	printf("here ok\n");
 	imwrite(filename, result);
 
 	rtBufferUnmap(buffer);

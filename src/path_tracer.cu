@@ -33,6 +33,7 @@ struct PerRayData_radiance{
     float3 result;
     float importance;
     int depth;
+	bool done;
 };
 
 
@@ -121,6 +122,12 @@ RT_PROGRAM void envmap_miss(){
 	float u = (theta + M_PIf) * (0.5f * M_1_PIf);
 	float v = 0.5f * (1.0f + sin(phi));
 	current_prd.result = make_float3(tex2D(envmap, u, v));
+	/*if (ray.direction.x > 0){
+		current_prd.result = make_float3(0.8f);
+	}
+	else{
+		current_prd.result = make_float3(0.0f);
+	}*/
 }
 
 
@@ -129,7 +136,7 @@ RT_PROGRAM void one_bounce_diffuse_closest_hit(){
     float3 world_shading_normal   = normalize( rtTransformNormal( RT_OBJECT_TO_WORLD, shading_normal ) );
     float3 world_geometric_normal = normalize( rtTransformNormal( RT_OBJECT_TO_WORLD, geometric_normal ) );
     float3 ffnormal               = faceforward( world_shading_normal, -ray.direction, world_geometric_normal );
-    float2 uv                     = make_float2(texcoord);
+    // float2 uv                     = make_float2(texcoord);
 
     //float3 Kd = make_float3(tex2D(diffuse_map, uv.x, uv.y));
 	float3 Kd = make_float3(0.8, 0.8, 0.8);
