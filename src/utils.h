@@ -14,3 +14,6 @@ struct MyVertex{
 #define TINYOBJLOADER_IMPLEMENTATION
 
 void LoadObjFromFile(const char* file_name, std::vector<MyVertex>& vertices);
+
+void LoadObj(const char* filename,
+	std::vector<MyVertex>& vertices);

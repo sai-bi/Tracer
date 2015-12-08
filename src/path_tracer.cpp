@@ -8,9 +8,12 @@
 #include <fstream>
 #include "PathTracerScene.h"
 #include "ObjLoader.h"
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
 using namespace optix;
 using namespace std;
+using namespace cv;
 
 
 void PathTracerScene::initContext(){
@@ -61,7 +64,7 @@ void PathTracerScene::initScene(InitialCameraData& camera_data){
 	m_context->setExceptionProgram( 0, exception_program );
   
 	// load env map
-	const float3 default_color = make_float3(1.0f, 1.0f, 1.0f);
+	const float3 default_color = make_float3(0.0f, 0.0f, 0.0f);
 	m_context["envmap"]->setTextureSampler(loadTexture(m_context, m_env_path, default_color));
 	m_context->setMissProgram(0, m_context->createProgramFromPTXFile(ptx_path, "envmap_miss"));
 
@@ -133,7 +136,8 @@ Buffer PathTracerScene::getOutputBuffer()
 void PathTracerScene::LoadGeometry(){
 	printf("Load geometry...\n");
 	vector<MyVertex> all_vertices;
-	LoadObjFromFile(m_filename.c_str(), all_vertices);
+	//LoadObjFromFile(m_filename.c_str(), all_vertices);
+	LoadObj(m_filename.c_str(), all_vertices);
 	
 	int vertex_num = all_vertices.size();
 
@@ -175,7 +179,8 @@ void PathTracerScene::createGeometry(){
 	m_context["top_object"]->set(geom_group);
 	m_context["top_shadower"]->set(geom_group);
 
-	ObjLoader* loader = new ObjLoader(m_filename.c_str(), m_context, geom_group, diffuse, true);
+	// ObjLoader* loader = new ObjLoader(m_filename.c_str(), m_context, geom_group, diffuse, false);
+	OptiXMesh loader(m_context, geom_group, m_accel_desc);
 	cout << "load finish" << endl;
 	//m_aabb = loader->getSceneBBox();
 }
@@ -186,30 +191,38 @@ void PathTracerScene::SaveFrame(const char* filename){
 	void* imageData;
 	rtBufferMap(buffer, &imageData);
 
-	FILE * pFile;
+	/*FILE * pFile;
 	pFile = fopen(filename, "w");
 
 	if (pFile == NULL){
 		printf("cannot open file\n");
 		exit(-1);
-	}
+	}*/
 
+	cv::Mat result(m_height * m_width, 1, CV_32FC3, 0);
+	int count = 0;
 	for (int j = m_height - 1; j >= 0; --j) {
 		float* src_1 = ((float*)imageData) + (4 * m_width*j);
 
 		for (int i = 0; i < m_width; i++) {
-			fprintf(pFile, "%c ", 'c');
+			//fprintf(pFile, "%c ", 'c');
+			Vec3f pixel_v;
 			for (int elem = 0; elem < 3; ++elem) {
 				float c = *src_1;
-				fprintf(pFile, "%f ", c);
+				//fprintf(pFile, "%f ", c);
 				src_1++;
+				pixel_v[elem] = c;
 			}
+			result.at<Vec3f>(count, 0) = pixel_v;
 			src_1++;
-			fprintf(pFile, "\n");
+			//fprintf(pFile, "\n");
 		}
 	}
+	
+	imwrite(filename, result);
+
 	rtBufferUnmap(buffer);
-	fclose(pFile);
+	//fclose(pFile);
 	exit(-1);
 }
 

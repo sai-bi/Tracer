@@ -231,6 +231,8 @@ set(SAMPLES_CUDA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cuda)
 # Convience function for adding samples to the code.  You can copy the contents of this
 # funtion into your individual project if you wish to customize the behavior.  Note that
 # in CMake, functions have their own scope, whereas macros use the scope of the caller.
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
 function(OPTIX_add_sample_executable target_name)
 
   # These calls will group PTX and CUDA files into their own directories in the Visual
@@ -264,6 +266,7 @@ function(OPTIX_add_sample_executable target_name)
     sutil
     optix
     ${optix_rpath}
+    ${OpenCV_LIBS}
     )
   if(USING_GNU_CXX)
     target_link_libraries( ${target_name} m ) # Explicitly link against math library (C samples don't do that by default)

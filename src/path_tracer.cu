@@ -133,7 +133,7 @@ RT_PROGRAM void one_bounce_diffuse_closest_hit(){
 
     //float3 Kd = make_float3(tex2D(diffuse_map, uv.x, uv.y));
 	float3 Kd = make_float3(0.8, 0.8, 0.8);
-    float3 result = make_float3(0);
+    float3 result = make_float3(0.0f);
 
     // compute indirect bounce 
     if(current_prd.depth < 1){
@@ -152,11 +152,12 @@ RT_PROGRAM void one_bounce_diffuse_closest_hit(){
                 float3 dir;
                 optix::cosine_sample_hemisphere(u1, u2, dir);
                 onb.inverse_transform(dir);
+				dir = normalize(dir);
 
                 PerRayData_radiance radiance_prd;
                 radiance_prd.importance = current_prd.importance * optix::luminance(Kd);
                 radiance_prd.depth = current_prd.depth + 1;
-
+				radiance_prd.result = make_float3(0.0f);
                 if(radiance_prd.importance > 0.001f){
                     optix::Ray radiance_ray = optix::make_Ray(hit_point, dir, radiance_ray_type, scene_epsilon, RT_DEFAULT_MAX);
                     rtTrace(top_object, radiance_ray, radiance_prd);
@@ -195,9 +196,12 @@ RT_PROGRAM void vertex_camera(){
             optix::cosine_sample_hemisphere(u1, u2, dir);
             onb.inverse_transform(dir);
 
+			dir = normalize(dir);
+
             PerRayData_radiance radiance_prd;
             radiance_prd.importance = optix::luminance(Kd);
             radiance_prd.depth = 0;
+			radiance_prd.result = make_float3(0.0f);
             if(radiance_prd.importance > 0.001f) {
                 optix::Ray radiance_ray = optix::make_Ray(hit_point, dir, radiance_ray_type, scene_epsilon, RT_DEFAULT_MAX);
                 rtTrace(top_object, radiance_ray, radiance_prd);

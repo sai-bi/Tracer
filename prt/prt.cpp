@@ -1,4 +1,8 @@
 #include "prt.h"
+#include "stdio.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include "direct.h"
 using namespace std;
 using namespace cv;
 using namespace Eigen;
@@ -15,11 +19,22 @@ using namespace Eigen;
 void CreateCubemap(int face_index, int x, int y, int cubemap_length, vector<Mat>& cubeface){
 	cubeface.resize(6);
 	for (int i = 0; i < 6; i++){
-		cubeface[i].create(cubemap_length, cubemap_length, CV_32FC3);
+		cubeface[i] = Mat(cubemap_length, cubemap_length, CV_32FC3, Vec3f(0, 0, 0));
 	}
 	cubeface[face_index].at<Vec3f>(y, x) = Vec3f(1, 1, 1);
 }
 
+void CreateCubemapFace(int face_index, int cubemap_length, vector<Mat>& cubeface){
+	cubeface.resize(6);
+	for (int i = 0; i < 6; i++){
+		cubeface[i] = Mat(cubemap_length, cubemap_length, CV_32FC3, Vec3f(0, 0, 0));
+	}
+	for (int y = 0; y < cubemap_length; y++){
+		for (int x = 0; x < cubemap_length; x++){
+			cubeface[face_index].at<Vec3f>(y, x) = Vec3f(1, 1, 1);
+		}
+	}
+}
 
 
 
@@ -173,3 +188,49 @@ int ConvertCubemapToLightProbe(cv::Mat& light_probe, const std::vector<cv::Mat>&
 	}
 	return 0;
 }
+
+
+void PrepareDirectory(std::string target_dir){
+	struct stat info;
+	int status = stat(target_dir.data(), &info);
+	if (status == 0 && info.st_mode && S_IFDIR){
+		// directory exists, do nothing
+	}
+	else{
+		// create directory
+		if (_mkdir(target_dir.c_str()) != 0){
+			printf("Fail to create directroy %s\n", target_dir);
+			exit(-1);
+		}
+	}
+
+	// create 6 directories to store data for each cubemap face
+	for (int i = 0; i < 6; i++){
+		string dir_name = target_dir + "\\face_" + to_string(i);
+		_mkdir(dir_name.c_str());
+	}
+}
+
+//void RunPrt(string path_tracer_path, string obj_path, string output_folder, int cubemap_length, int sqrt_sample_num,
+//	const cv::Size& light_probe_size){
+//	
+//	for (int i = 0; i < 6; i++){
+//		int count = 0;
+//		for (int r = 0; r < cubemap_length; r++){
+//			for (int c = 0; c < cubemap_length; c++){
+//				vector<Mat> cubemap_face;
+//				Mat light_probe;
+//				CreateCubemap(i, c, r, cubemap_length, cubemap_face);
+//				ConvertCubemapToLightProbe(light_probe, cubemap_face, light_probe_size);
+//				
+//				string env_path = output_folder + "\\face_" + to_string(i) + "\\" + "env_" + to_string(i) + ".hdr";
+//				imwrite(env_path, light_probe);
+//
+//				string output_path = output_folder + "\\face_" + to_string(i) + "\\" + to_string(count) + ".txt";
+//
+//				GLUTDisplay::init();
+//
+//			}
+//		}
+//	}
+//}

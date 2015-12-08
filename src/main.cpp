@@ -44,15 +44,15 @@ int main(int argc, char** argv)
 {
 	GLUTDisplay::init(argc, argv);
 	if (!GLUTDisplay::isBenchmark()) {
-		printUsageAndExit(argv[0], false);
+		//printUsageAndExit(argv[0], false);
 	}
 
 	unsigned int sqrt_num_samples = 10u;
 	unsigned int width = 512u, height = 512u;
-	float timeout = 10.0f;
+	float timeout = 100000.0f;
 	PathTracerScene scene;
 
-	string config_path = "C:\\Users\\bisai\\Documents\\GitHub\\Tracer\\src\\Configure.in";
+	/*string config_path = "C:\\Users\\bisai\\Documents\\GitHub\\Tracer\\src\\Configure.in";
 	ifstream fin(config_path.c_str());
 
 	if (!fin.is_open()){
@@ -80,8 +80,12 @@ int main(int argc, char** argv)
 		else if (var_name == "output_path"){
 			scene.setOutputPath(var_value);
 		}
-	}
-
+	}*/
+	scene.setFileName(argv[1]);
+	scene.setNumSamples(atoi(argv[2]));
+	scene.setEnvmapPath(argv[3]);
+	scene.setOutputPath(argv[4]);
+	
 	try {
 		GLUTDisplay::setProgressiveDrawingTimeout(timeout);
 		GLUTDisplay::setUseSRGB(true);

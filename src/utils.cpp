@@ -64,3 +64,81 @@ void LoadObjFromFile(const char* file_name, vector<MyVertex>& vertices){
 }
 
 
+void LoadObj(const char* filename,
+	std::vector<MyVertex>& all_vertices){
+
+	std::vector<float4> vertices;
+	std::vector<float3> normals;
+	vector<int> elements;
+	printf("Load obj from file %s\n", filename);
+	FILE * file = fopen(filename, "r");
+	if (!file)
+	{
+		cerr << "Cannot open " << filename << endl; exit(1);
+	}
+
+	char lineHeader[128];
+	vector<int> vertex_normal_index;
+	while (true)
+	{
+		int res = fscanf(file, "%s", lineHeader);
+
+		if (res == EOF){
+			break;
+		}
+
+		if (strcmp(lineHeader, "v") == 0)
+		{
+			float4 v;
+			fscanf(file, "%f %f %f\n", &v.x, &v.y, &v.z);
+			v.w = 1.0f;
+			vertices.push_back(v);
+		}
+		else if (strcmp(lineHeader, "f") == 0)
+		{
+			int a, b, c, d, e, f;
+			int matches = fscanf(file, "%d//%d %d//%d %d//%d\n", &a, &b, &c, &d, &e, &f);
+			a--; b--; c--; d--; e--; f--;
+			elements.push_back(a); vertex_normal_index.push_back(b);
+			elements.push_back(c); vertex_normal_index.push_back(d);
+			elements.push_back(e); vertex_normal_index.push_back(f);
+		}
+
+		else if (strcmp(lineHeader, "vn") == 0)
+		{
+			float3 v;
+			fscanf(file, "%f %f %f\n", &v.x, &v.y, &v.z);
+			normals.push_back(v);
+		}
+		else
+		{
+			/* ignoring this line */
+		}
+	}
+
+	int vertex_num = vertices.size();
+	normals.resize(vertex_num, make_float3(0.0, 0.0, 0.0));
+
+	for (int i = 0; i < elements.size(); i += 3)
+	{
+		int ia = elements[i];
+		int ib = elements[i + 1];
+		int ic = elements[i + 2];
+		float3 t1 = make_float3(vertices[ib] - vertices[ia]);
+		float3 t2 = make_float3(vertices[ic] - vertices[ia]);
+		float3 normal = cross(t1, t2);
+
+		normals[ia] += normal;
+		normals[ib] += normal;
+		normals[ic] += normal;
+	}
+
+	for (int i = 0; i < vertex_num; i++){
+		MyVertex temp;
+		temp.vertex = make_float3(vertices[i]);
+		temp.normal = normalize(normals[i]);
+
+		all_vertices.push_back(temp);
+	}
+	printf("loaded...\n");
+}

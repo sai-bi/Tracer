@@ -140,7 +140,8 @@ HDRLoader::HDRLoader( const std::string& filename )
     float exposure = 1.0f;
 
     std::getline(inf, magic);
-    if(magic != "#?RADIANCE") throw HDRError("File isn't Radiance.");
+	//printf("%s\n", magic);
+    //if(magic != "#?RADIANCE") throw HDRError("File isn't Radiance.");
     for (;;) {
       getLine(inf, comment);
 
