@@ -106,7 +106,7 @@ void PathTracerScene::trace( const RayGenCameraData& camera_data )
 
 	Buffer buffer = m_context["output_buffer"]->getBuffer();
 	RTsize buffer_width, buffer_height;
-	buffer->getSize( buffer_width, buffer_height );
+	buffer->getSize(buffer_width, buffer_height );
 
 	bool camera_changed = m_camera_changed;
 	if( m_camera_changed ) {
@@ -149,7 +149,7 @@ void PathTracerScene::LoadGeometry(){
 	vertex_buffer->unmap();
 	m_context["vertices"]->set(vertex_buffer);
 
-	m_width = vertex_num;
+	m_width = vertex_num * m_sqrt_num_samples * m_sqrt_num_samples;
 	m_height = 1;
 
 	printf("Load completed... \n");
@@ -204,9 +204,11 @@ void PathTracerScene::SaveFrame(const char* filename){
 		printf("cannot open file\n");
 		exit(-1);
 	}*/
-
-	cv::Mat result(m_height * m_width, 1, CV_32FC3);
+	int sample_num = m_sqrt_num_samples * m_sqrt_num_samples;
+	int row_num = (m_height * m_width) / (sample_num);
+	cv::Mat result(row_num, 1, CV_32FC3, Vec3f(0,0,0));
 	int count = 0;
+	printf("Save result...\n");
 	for (int j = m_height - 1; j >= 0; --j) {
 		float* src_1 = ((float*)imageData) + (4 * m_width*j);
 
@@ -219,13 +221,13 @@ void PathTracerScene::SaveFrame(const char* filename){
 				src_1++;
 				pixel_v[elem] = c;
 			}
-			result.at<Vec3f>(count, 0) = pixel_v;
+			result.at<Vec3f>(count / sample_num, 0) += pixel_v;
 			src_1++;
 			count++;
 			//fprintf(pFile, "\n");
 		}
 	}
-	printf("here ok\n");
+	result = result / ((float)(sample_num));
 	imwrite(filename, result);
 
 	rtBufferUnmap(buffer);

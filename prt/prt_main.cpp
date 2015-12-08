@@ -12,13 +12,14 @@ void test(){
 	for (int i = 0; i < 16; i++){
 		Mat img = imread(output_folder + to_string(i) + ".hdr", cv::IMREAD_ANYCOLOR | cv::IMREAD_ANYDEPTH);
 		if (i == 0){
-			result = img;
+			result = img.clone();
 		}
 		else{
 			result += img;
 		}
 	}
 
+	result = result;
 	FILE* file = fopen("C:\\Users\\bisai\\Documents\\GitHub\\Tracer\\data\\toasters\\004\\face_0\\tea.txt", "w");
 	for (int i = 0; i < result.rows; i++){
 		Vec3f v = result.at<Vec3f>(i, 0);
@@ -44,7 +45,7 @@ int main(int argc, char** argv){
 	string obj_path = "C:\\Users\\bisai\\Documents\\GitHub\\Tracer\\data\\teapot\\bunny_with_base.obj";
 	string output_folder = "C:\\Users\\bisai\\Documents\\GitHub\\Tracer\\data\\toasters\\004";
 	string tracer_path = "C:\\Users\\bisai\\Documents\\GitHub\\Tracer\\build\\bin\\Release\\PathTracer.exe";
-	int sqrt_num_samples = 8;
+	int sqrt_num_samples = 30;
 
 	PrepareDirectory(output_folder);
 

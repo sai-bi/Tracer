@@ -143,13 +143,14 @@ RT_PROGRAM void one_bounce_diffuse_closest_hit(){
     float3 result = make_float3(0.0f);
 
     // compute indirect bounce 
+	int sample_num = 1;
     if(current_prd.depth < 1){
         optix::Onb onb(ffnormal);
         unsigned int seed = rot_seed(rnd_seeds[launch_index], frame);
         const float inv_sqrt_samples = 1.0f / float(sqrt_num_samples);
 
-        int nx = sqrt_num_samples;
-        int ny = sqrt_num_samples;
+		int nx = sample_num;
+		int ny = sample_num;
 
         while(ny--){
             while(nx--){
@@ -171,9 +172,9 @@ RT_PROGRAM void one_bounce_diffuse_closest_hit(){
                     result += radiance_prd.result;
                 }
             }
-            nx = sqrt_num_samples;
+			nx = sample_num;
         }
-        result *= (Kd) / ((float)(sqrt_num_samples * sqrt_num_samples));
+		result *= (Kd) / ((float)(sample_num * sample_num));
     }
 
     current_prd.result = result;
@@ -181,14 +182,16 @@ RT_PROGRAM void one_bounce_diffuse_closest_hit(){
 
 
 RT_PROGRAM void vertex_camera(){
-    float3 vertex_pos = vertices[launch_index.x].vertex;
-    float3 vertex_normal = vertices[launch_index.x].normal;
+	int index = (launch_index.x) / (sqrt_num_samples * sqrt_num_samples);
+    float3 vertex_pos = vertices[index].vertex;
+	float3 vertex_normal = vertices[index].normal;
     vertex_normal = normalize(vertex_normal);
     float3 result = make_float3(0);
 
-    const float inv_sqrt_samples = 1.0f / (sqrt_num_samples);
-    int nx = sqrt_num_samples;
-    int ny = sqrt_num_samples;
+    int sample_num = 1.0;
+    const float inv_sqrt_samples = 1.0f / (sample_num);
+    int nx = sample_num;
+    int ny = sample_num;
     unsigned int seed = rot_seed( rnd_seeds[ launch_index ], frame );
 
     optix::Onb onb(vertex_normal);
@@ -216,10 +219,10 @@ RT_PROGRAM void vertex_camera(){
                 result += radiance_prd.result;
             }
         }
-        nx = sqrt_num_samples;
+        nx = sample_num;
     }
 
-	result *= (Kd) / ((float)(sqrt_num_samples*sqrt_num_samples));
+	result *= (Kd) / ((float)(sample_num*sample_num));
 
     output_buffer[launch_index] = make_float4(result, 0.0f);
 }
